@@ -1,0 +1,12 @@
+{
+  "name": "context-meter",
+  "version": "0.3.0",
+  "description": "Shows the context window fill under the model name, blue up to 50% then yellow to red.",
+  "author": {
+    "name": "Vincenzo Caselli"
+  },
+  "types": "./types/index.d.ts",
+  "homepage": "https://github.com/vincenzocaselli/claude-context-meter",
+  "repository": "https://github.com/vincenzocaselli/claude-context-meter",
+  "license": "MIT"
+}

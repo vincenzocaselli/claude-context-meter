@@ -1,0 +1,12 @@
+{
+  "name": "vincenzocaselli",
+  "owner": { "name": "Vincenzo Caselli" },
+  "description": "Claude Code plugins by Vincenzo Caselli.",
+  "plugins": [
+    {
+      "name": "context-meter",
+      "source": "./",
+      "description": "Shows the context window fill under the model name, blue up to 50% then yellow to red."
+    }
+  ]
+}
