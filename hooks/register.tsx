@@ -1,5 +1,5 @@
 import { atom, read, update } from 'claude-code'
-import type { Register, SessionContextUsage } from 'claude-code'
+import type { EngineInterface, Register, SessionContextUsage } from 'claude-code'
 
 import type { Fill } from '../types'
 
@@ -16,12 +16,23 @@ const STOPS: ReadonlyArray<readonly [number, [number, number, number]]> = [
   [100, [220, 38, 38]],
 ]
 
-function toFill(context: SessionContextUsage): Fill | null {
-  if (context.tokens === undefined || context.percent === undefined) {
+// The desktop's own context indicator sums the per-category estimate that
+// /context shows, against the model's window. The meter uses the same figure,
+// so the two always agree; it falls back to the last response's input tokens
+// where no estimate is available.
+export function toFill(context: SessionContextUsage): Fill | null {
+  const tokens = context.breakdown?.totalTokens ?? context.tokens
+
+  if (tokens === undefined || context.window <= 0) {
     return null
   }
 
-  return { tokens: context.tokens, window: context.window, percent: context.percent }
+  return { tokens, window: context.window, percent: Math.round((tokens / context.window) * 100) }
+}
+
+async function refresh($: EngineInterface): Promise<void> {
+  const { context } = await $.session.usage({ breakdown: 'summary' })
+  await update($, fill, () => toFill(context))
 }
 
 function toHex([r, g, b]: readonly number[]): string {
@@ -51,18 +62,25 @@ export function filledSegments(percent: number): number {
 
 export const register: Register = on => {
   on('session.start', async ($, e, next) => {
-    const { context } = await $.session.usage()
-    await update($, fill, () => toFill(context))
+    const result = await next(e)
+    await refresh($)
 
-    return next(e)
+    return result
   })
 
   on('session.measure', async ($, e, next) => {
-    if (e.changed.includes('context')) {
-      await update($, fill, () => toFill(e.context))
-    }
+    const result = await next(e)
+    await refresh($)
 
-    return next(e)
+    return result
+  })
+
+  // A tool result grows the context before the next response reports it.
+  on('tool.call', async ($, e, next) => {
+    const result = await next(e)
+    await refresh($)
+
+    return result
   })
 
   // Drawn in the slot of the mode labels, under the model name.
